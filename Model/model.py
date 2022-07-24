@@ -5,7 +5,7 @@ from tensorflow import keras
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.preprocessing.image import ImageDataGenerator, load_img
+
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers.experimental import preprocessing
 from keras.utils.vis_utils import plot_model
