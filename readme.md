@@ -57,117 +57,97 @@ Here, if mask has a maximum pixel value greater than 0, I am flagging it as 1(Tu
     ![Expansion Path](img/bottom_layer.png)
 
     - The l last layer is a convolution layer with 1 filter of size 1x1(notice that there is no dense layer in the whole network). And the rest left is the same for neural network training.
-
-
     ![Expansion Path](img/last_layer.png)
 
-    ```python
-class segment:
 
-    def __init__(self, n_filters, input_size, n_classes):
-        self.n_filters = n_filters  # n_filters= 64
-        self.input_size = input_size #input_size=(256, 256, 3)
-        self.n_classes = n_classes  #n_classes=1  
+### Testing and Validations
 
-    ## Encoder
-    def conv_block(self, inputs, filters, max_pooling):
+-   After training the model, I analyzed the quality of prediction image. To do that, I have used   Intersection-Over-Union (IoU), also known as the Jaccard Index.
 
-        # Convolutional layers
-        conv = layers.Conv2D(filters,
-                    kernel_size = (3, 3),
-                    activation = 'relu',
-                    padding = 'same',
-                    kernel_initializer = 'he_normal')(inputs)
-        conv = layers.Conv2D(filters,
-                    kernel_size = (3, 3),
-                    activation = None,
-                    padding = 'same',
-                    kernel_initializer = 'he_normal')(conv)
-        skip_connection = conv
-        conv = layers.BatchNormalization(axis=3)(conv)
-        conv = layers.Activation('relu')(conv)
-            
-        # if max_pooling is True add a MaxPooling2D with 2x2 pool_size
-        if max_pooling:
-            next_layer = layers.MaxPooling2D(pool_size=(2, 2), strides=(2,2))(conv)
-        else:
-            next_layer = conv
-        
-        return next_layer, skip_connection
+    IoU is the area of overlap between the predicted segmentation and the ground truth divided by the area of union between the predicted segmentation and the ground truth, as shown on the image to the left. This metric ranges from 0–1 (0–100%) with 0 signifying no overlap and 1 signifying perfectly overlapping segmentation.
 
-    ## Decoder
-    def upsampling_block(self, expansive_input, contractive_input, filters):
-        """
-            Convolutional upsampling block
-            
-            Arguments:
-                expansive_input -- Input tensor from previous layer
-                contractive_input -- Input tensor from previous skip layer
-                n_filters -- Number of filters for the convolutional layers
-            Returns: 
-                conv -- Tensor output
-        """
+    For binary (two classes) or multi-class segmentation, the mean IoU of the image is calculated by taking the IoU of each class and averaging them. (It’s implemented slightly differently in code).
 
-        # Transpose convolution
-        up = layers.Conv2DTranspose(
-                    filters,
-                    kernel_size = (2, 2),
-                    strides = (2, 2),
-                    padding = 'same')(expansive_input)
-        
-        # Merge the previous output and the contractive_input
-        merge = layers.concatenate([up, contractive_input], axis=3)
-        conv = layers.Conv2D(filters,
-                    kernel_size = (3, 3),
-                    activation = 'relu',
-                    padding = 'same',
-                    kernel_initializer = 'he_normal')(merge)
-        conv = layers.Conv2D(filters,
-                    kernel_size = (3, 3),
-                    activation = None,
-                    padding = 'same',
-                    kernel_initializer = 'he_normal')(conv)
-        conv = layers.BatchNormalization(axis=3)(conv)
-        conv = layers.Activation('relu')(conv)
-        
-        return conv
+    ![IOU](img/IOU.png)
 
-    def build_unet(self):
-        """
-        Unet model
-    
-        Arguments:
-            input_size -- Input shape 
-            n_filters -- Number of filters for the convolutional layers
-            n_classes -- Number of output classes
-        Returns: 
-            model -- tf.keras.Model
-        """
-        
-        # Input layer
-        inputs = layers.Input(self.input_size)
-        
-        # Encoder (double the number of filters at each step)
-        cblock1 = self.conv_block(inputs, self.n_filters, True)
-        cblock2 = self.conv_block(cblock1[0], 2*self.n_filters, True)
-        cblock3 = self.conv_block(cblock2[0], 4*self.n_filters, True)
-        cblock4 = self.conv_block(cblock3[0], 8*self.n_filters, True)
-        cblock5 = self.conv_block(cblock4[0], 16*self.n_filters, False) 
+    If the prediction is completely correct, IoU = 1. The lower the IoU, the worse the prediction result.
 
-        # Decoder (halve the number of filters at each step)
-        ublock6 = self.upsampling_block(cblock5[0], cblock4[1],  8*self.n_filters)
-        ublock7 = self.upsampling_block(ublock6, cblock3[1],  4*self.n_filters)
-        ublock8 = self.upsampling_block(ublock7, cblock2[1],  2*self.n_filters)
-        ublock9 = self.upsampling_block(ublock8, cblock1[1],  self.n_filters)
+    ![IOU Details](img/iou_detai%3Bs.png)
 
-        # 1x1 convolution
-        conv10 = layers.Conv2D(filters = self.n_classes,
-                    kernel_size = (1, 1),
-                    activation = 'sigmoid',    # use softmax if n_classes>1
-                    padding = 'same')(ublock9)
+- **Loss and Dice Coefficient**: Due to limited GPU's and out of memory issues, I went with 12 epochs. In real time scenario, I would like the network to learn more, therefore an epoch of 120 would be a good one.
 
-        model = keras.Model(inputs=inputs, outputs=conv10)
+    -   As, U-net architecture contains lots data and parameters, therefore to update all weights efficiently and computationally faster with a single learning rate, I went with *Adam*.
 
-        return model
+    -   For **loss function**, I went with *Dice-coefficient(DSC)* loss. It considers the loss information both locally and globally, which is critical for high accuracy.
 
     ```
+    class Quality_metrics:
+
+    def __init__(self, smooth):
+        self.smooth = smooth
+
+    def dice_coef(self, y_true, y_pred):
+        y_true = K.flatten(y_true)
+        y_pred = K.flatten(y_pred)
+        intersection = K.sum(y_true * y_pred)
+        union = K.sum(y_true) + K.sum(y_pred)
+        return (2.0 * intersection + self.smooth) / (union + self.smooth)
+
+    def dice_coef_loss(self,y_true, y_pred):
+        return 1 - self.dice_coef(y_true, y_pred)
+
+    def bce_dice_loss(self,y_true, y_pred):
+        bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+        return self.dice_coef_loss(y_true, y_pred) + bce(y_true, y_pred)
+
+    def iou(self, y_true, y_pred):
+        intersection = K.sum(y_true * y_pred)
+        sum_ = K.sum(y_true + y_pred)
+        jac = (intersection + self.smooth) / (sum_ - intersection + self.smooth)
+        return jac
+    ```
+    ![Loss Functions](img/loss_form.png)
+
+    - **Loss and validation plots**
+
+    <center>
+
+    ![alt-text-1](img/Loss.png "title-1") ![alt-text-2](img/IOU_plot.png "title-2") ![alt-text-3](img/Dice_coef.png "title-3")
+
+    </center>
+
+
+### Conclusions
+
+After Validating it with the test data, I found out U-net is highly efficient in locating the area of abnormality with a high segmentation accuracy. The model has delivered 99% IOU and 63.28% of dice coefficient on test data. It can be further improved by increasing the epochs.
+
+Below are the sample prediction:
+
+![IOU Details](img/model_predictions.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
