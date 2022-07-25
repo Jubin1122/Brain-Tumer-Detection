@@ -42,3 +42,7 @@ Here, if mask has a maximum pixel value greater than 0, I am flagging it as 1(Tu
 <figure>
   <img src="img/no_tumer.png" alt=".." title="Optional title" />
 </figure>
+
+- **Model**: Instead of going with general convolutional neural network, which focuses on image classification, where input is an image and output is a lable. However, in our case we are required to localize the area of abnormality. UNet is dedicated in solving this problem. 
+
+    UNet is able to do image localisation by predicting the image pixel by pixel and the author of UNet claims in his [paper](https://arxiv.org/abs/1505.04597) that the network is strong enough to do good prediction based on even few data sets by using excessive data augmentation techniques.
