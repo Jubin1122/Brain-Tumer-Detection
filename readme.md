@@ -31,9 +31,14 @@ Here, if mask has a maximum pixel value greater than 0, I am flagging it as 1(Tu
 - **EDA**:  For understanding the images furtherm, I randomly selected 5 samples for tumer and no-tumer condition, which I assigned it as positive(tumer) and negative(no-tumer). 
     After that, I created a grid and plot the 5 images in the RGB format for the positive and the negative case.
 
+<h4 align="center">Tumer</h4>
 <figure>
   <img src="img/tumer.png" alt=".." title="Optional title" />
 </figure>
 
-<h4 align="center">Tumer</h4>
+<p></p>
 
+<h4 align="center">No Tumer</h4>
+<figure>
+  <img src="img/no_tumer.png" alt=".." title="Optional title" />
+</figure>
