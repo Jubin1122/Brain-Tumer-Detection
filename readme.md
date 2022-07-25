@@ -33,6 +33,7 @@ Here, if mask has a maximum pixel value greater than 0, I am flagging it as 1(Tu
 
 <figure>
   <img src="img/tumer.png" alt=".." title="Optional title" />
-  <figcaption align="center">Tumer</figcaption>
 </figure>
+
+<h4 align="center">Tumer</h4>
 
