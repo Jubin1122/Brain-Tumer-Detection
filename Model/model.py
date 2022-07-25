@@ -15,9 +15,7 @@ class segment:
     def __init__(self, n_filters, input_size, n_classes):
         self.n_filters = n_filters  # n_filters= 64
         self.input_size = input_size #input_size=(256, 256, 3)
-        self.n_classes = n_classes  #n_classes=1
-
-            
+        self.n_classes = n_classes  #n_classes=1  
 
     ## Encoder
     def conv_block(self, inputs, filters, max_pooling):
