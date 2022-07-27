@@ -1,4 +1,4 @@
-<h1 align="center">Brain Tumer Detection</h1>
+<h1 align="center">Brain Tumor Detection</h1>
 
 ![Brain](img/gif/brain.gif)
 
